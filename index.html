@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO Copy Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f4f0; --bg3: #eeece7;
+    --text: #1a1a1a; --text2: #6b6b6b; --text3: #9a9a9a;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --info-bg: #e6f1fb; --info-text: #0c447c;
+    --success-bg: #eaf3de; --success-text: #27500a;
+    --danger-bg: #fcebeb; --danger-text: #791f1f;
+    --accent: #378ADD; --radius: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1c; --bg2: #252525; --bg3: #2e2e2e;
+      --text: #f0ede6; --text2: #a8a8a8; --text3: #6b6b6b;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --info-bg: #042c53; --info-text: #85b7eb;
+      --success-bg: #173404; --success-text: #c0dd97;
+      --danger-bg: #501313; --danger-text: #f09595;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 720px; margin: 0 auto; }
+  .app-header { margin-bottom: 2rem; }
+  .app-header h1 { font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .app-header p { font-size: 13px; color: var(--text2); }
+  .step { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; transition: opacity 0.3s; }
+  .step.locked { opacity: 0.45; pointer-events: none; }
+  .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .badge { width: 24px; height: 24px; border-radius: 50%; background: var(--bg2); color: var(--text2); font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 0.5px solid var(--border); }
+  .badge.done { background: var(--success-bg); color: var(--success-text); border-color: transparent; }
+  .badge.active { background: var(--accent); color: #fff; border-color: transparent; }
+  .step-title { font-size: 14px; font-weight: 500; }
+  label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 4px; margin-top: 12px; }
+  label:first-of-type { margin-top: 0; }
+  input, textarea, select {
+    width: 100%; font-size: 13px; padding: 8px 10px; border: 0.5px solid var(--border);
+    border-radius: var(--radius); background: var(--bg); color: var(--text);
+    font-family: inherit; outline: none; transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(55,138,221,0.15); }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn { font-size: 13px; padding: 8px 16px; cursor: pointer; border-radius: var(--radius); font-family: inherit; transition: opacity 0.15s, background 0.15s; }
+  .btn-primary { background: var(--text); color: var(--bg); border: none; font-weight: 500; }
+  .btn-primary:hover { opacity: 0.82; }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-secondary { background: transparent; border: 0.5px solid var(--border2); color: var(--text); }
+  .btn-secondary:hover { background: var(--bg2); }
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 1.5rem; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  .status-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; color: var(--text2); }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .msg { padding: 10px 12px; border-radius: var(--radius); font-size: 13px; margin-top: 8px; }
+  .msg.error { background: var(--danger-bg); color: var(--danger-text); }
+  .msg.success { background: var(--success-bg); color: var(--success-text); }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--info-bg); color: var(--info-text); margin: 2px; }
+  .kw-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .bp-section { margin-bottom: 10px; }
+  .bp-section-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 4px; }
+  .serp-card { border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
+  .serp-kw-label { font-size: 11px; font-weight: 500; color: var(--info-text); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .serp-row { font-size: 12px; color: var(--text2); padding: 3px 0; display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: baseline; }
+  .serp-pos { color: var(--text3); font-size: 11px; }
+  .serp-title { color: var(--text); }
+  .serp-url { color: var(--info-text); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+  .meta-item { background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
+  .meta-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .meta-val { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .output-box { background: var(--bg2); border-radius: var(--radius); padding: 1rem; font-size: 12px; color: var(--text); line-height: 1.7; white-space: pre-wrap; max-height: 380px; overflow-y: auto; font-family: 'Courier New', monospace; border: 0.5px solid var(--border); }
+  .doc-link { font-size: 13px; color: var(--info-text); word-break: break-all; margin-top: 8px; }
+  .doc-link a { color: var(--info-text); }
+  code { font-size: 11px; background: var(--bg2); padding: 1px 5px; border-radius: 4px; font-family: monospace; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="app-header">
+    <h1>SEO Copy Generator</h1>
+    <p>Buyer persona + analisi SERP automatica + articolo ottimizzato → Google Docs</p>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+
+  <div class="step" id="step1">
+    <div class="step-header"><div class="badge active" id="b1">1</div><span class="step-title">Parametri del brief</span></div>
+    <div class="row2">
+      <div>
+        <label>Paese</label>
+        <select id="country">
+          <option value="IT">IT — Italia</option>
+          <option value="ES">ES — Spagna</option>
+          <option value="FR">FR — Francia</option>
+          <option value="DE">DE — Germania</option>
+          <option value="UK">UK — Regno Unito</option>
+          <option value="US">US — Stati Uniti</option>
+        </select>
+      </div>
+      <div>
+        <label>Keyword principale</label>
+        <input type="text" id="kwPrincipale" placeholder="es. analisi della concorrenza" />
+      </div>
+    </div>
+    <label>Keywords aggiuntive (una per riga)</label>
+    <textarea id="keywords" rows="3" placeholder="analisi competitor&#10;competitive analysis&#10;analisi concorrenza online"></textarea>
+    <label>Descrizione cliente</label>
+    <textarea id="descrCliente" rows="3" placeholder="Chi è il cliente, cosa fa, qual è il prodotto/servizio..."></textarea>
+    <label>Pagina Chi siamo (URL)</label>
+    <input type="text" id="paginaChiSiamo" placeholder="https://..." />
+    <label>Brief editoriale / Intervento</label>
+    <textarea id="brief" rows="3" placeholder="Obiettivi commerciali, tono, vincoli, CTA target..."></textarea>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-bp" onclick="runBuyerPersona()">Genera buyer persona ↗</button>
+    </div>
+    <div id="status1"></div>
+  </div>
+
+  <div class="step locked" id="step2">
+    <div class="step-header"><div class="badge" id="b2">2</div><span class="step-title">Buyer persona generata</span></div>
+    <div id="bp-output" style="font-size:13px;color:var(--text2)">In attesa della generazione...</div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="editBP()" id="btn-edit-bp" style="display:none">Modifica</button>
+      <button class="btn btn-primary" onclick="runSerpAuto()" id="btn-next-serp" style="display:none">Analisi SERP automatica ↗</button>
+    </div>
+  </div>
+
+  <div class="step locked" id="step3">
+    <div class="step-header"><div class="badge" id="b3">3</div><span class="step-title">Analisi SERP automatica</span></div>
+    <div id="serp-status" style="font-size:13px;color:var(--text2)">In attesa...</div>
+    <div id="serp-results" style="margin-top:12px"></div>
+    <div class="actions" id="serp-actions" style="display:none">
+      <button class="btn btn-primary" id="btn-gen-copy" onclick="runCopyGen()">Genera articolo SEO ↗</button>
+    </div>
+    <div id="status3"></div>
+  </div>
+
+  <div class="step locked" id="step4">
+    <div class="step-header"><div class="badge" id="b4">4</div><span class="step-title">Output articolo</span></div>
+    <div id="step4-placeholder" style="font-size:13px;color:var(--text2)">In attesa della generazione...</div>
+    <div id="meta-section" style="display:none">
+      <div id="meta-cards"></div>
+      <label>Articolo generato</label>
+      <div class="output-box" id="article-output"></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-gdocs" onclick="exportGDocs()">Esporta su Google Docs (formattato) ↗</button>
+        <button class="btn btn-secondary" onclick="copyAll()">Copia testo</button>
+      </div>
+      <div id="status4"></div>
+      <div id="gdoc-link" class="doc-link" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const localeMap={IT:'it-IT',ES:'es-ES',FR:'fr-FR',DE:'de-DE',UK:'en-GB',US:'en-US'};
+let state={bp:null,parsed:null,serpData:[],docId:null};
+
+function setProgress(p){document.getElementById('prog').style.width=p+'%';}
+function setStepActive(n){
+  for(let i=1;i<=4;i++){
+    const s=document.getElementById('step'+i),b=document.getElementById('b'+i);
+    if(i<n){s.classList.remove('locked');b.className='badge done';b.textContent='✓';}
+    else if(i===n){s.classList.remove('locked');b.className='badge active';b.textContent=i;}
+    else{s.classList.add('locked');b.className='badge';b.textContent=i;}
+  }
+}
+function showStatus(id,msg,type){
+  const el=document.getElementById(id);
+  if(!msg){el.innerHTML='';return;}
+  if(type==='loading'){el.innerHTML=`<div class="status-row"><div class="spinner"></div><span>${msg}</span></div>`;}
+  else{el.innerHTML=`<div class="msg ${type}">${msg}</div>`;}
+}
+
+async function callClaude(sys,user,maxTok=1000){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})
+  });
+  if(!r.ok)throw new Error('API error '+r.status);
+  const d=await r.json();
+  return d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+}
+
+async function callClaudeSearch(user){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',max_tokens:1500,
+      tools:[{type:'web_search_20250305',name:'web_search'}],
+      system:`Sei un SEO analyst. Cerca su Google la keyword e restituisci i primi 3 risultati organici (no ads, no featured snippets).
+Rispondi SOLO con un array JSON: [{"pos":1,"title":"...","url":"..."},{"pos":2,"title":"...","url":"..."},{"pos":3,"title":"...","url":"..."}]
+Zero testo fuori dall'array. Zero backtick.`,
+      messages:[{role:'user',content:user}]
+    })
+  });
+  if(!r.ok)throw new Error('Search error '+r.status);
+  const d=await r.json();
+  const text=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+  try{return JSON.parse(text.replace(/```json\n?|```/g,'').trim());}
+  catch(e){return [{pos:1,title:'Risultato non disponibile',url:''}];}
+}
+
+async function callClaudeMCP(userMsg){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',max_tokens:500,
+      mcp_servers:[{type:'url',url:'https://drivemcp.googleapis.com/mcp/v1',name:'gdrive'}],
+      messages:[{role:'user',content:userMsg}]
+    })
+  });
+  if(!r.ok)throw new Error('MCP error '+r.status);
+  const d=await r.json();
+  return d.content;
+}
+
+async function runBuyerPersona(){
+  const kw=document.getElementById('kwPrincipale').value.trim();
+  const descr=document.getElementById('descrCliente').value.trim();
+  const chi=document.getElementById('paginaChiSiamo').value.trim();
+  const country=document.getElementById('country').value;
+  if(!kw||!descr){showStatus('status1','Compila almeno keyword principale e descrizione cliente.','error');return;}
+  document.getElementById('btn-bp').disabled=true;
+  showStatus('status1','Analisi buyer persona in corso...','loading');
+  setProgress(15);
+  const sys=`Sei un marketing researcher esperto nella creazione di buyer persona per contenuti digitali.
+Restituisci ESCLUSIVAMENTE un oggetto JSON valido con tre chiavi: "caratteristiche", "bisogni", "pain_points".
+Ogni chiave è un array di max 5 stringhe. NESSUN testo fuori dal JSON, nessun backtick.`;
+  const usr=`Keyword: ${kw}\nCliente: ${descr}\nChi siamo: ${chi}\nGeo: ${country} (${localeMap[country]})\nCrea la buyer persona specifica per questa keyword in questo mercato.`;
+  try{
+    const raw=await callClaude(sys,usr,1000);
+    state.bp=JSON.parse(raw.replace(/```json\n?|```/g,'').trim());
+    renderBP(state.bp);
+    showStatus('status1','','');
+    setStepActive(2);setProgress(30);
+    document.getElementById('btn-edit-bp').style.display='inline-block';
+    document.getElementById('btn-next-serp').style.display='inline-block';
+  }catch(e){showStatus('status1','Errore: '+e.message,'error');document.getElementById('btn-bp').disabled=false;}
+}
+
+function renderBP(bp){
+  const labels={caratteristiche:'Caratteristiche',bisogni:'Bisogni',pain_points:'Pain points'};
+  let html='';
+  for(const k of['caratteristiche','bisogni','pain_points']){
+    html+=`<div class="bp-section"><div class="bp-section-label">${labels[k]}</div><div class="kw-tags">`;
+    (bp[k]||[]).forEach(v=>{html+=`<span class="tag">${v}</span>`;});
+    html+=`</div></div>`;
+  }
+  document.getElementById('bp-output').innerHTML=html;
+}
+
+function editBP(){
+  document.getElementById('bp-output').innerHTML=`<textarea id="bp-edit" style="width:100%;min-height:160px;font-size:12px;font-family:monospace">${JSON.stringify(state.bp,null,2)}</textarea><button class="btn btn-secondary" style="margin-top:8px;font-size:12px" onclick="saveBPEdit()">Salva</button>`;
+}
+function saveBPEdit(){
+  try{state.bp=JSON.parse(document.getElementById('bp-edit').value);renderBP(state.bp);}
+  catch(e){alert('JSON non valido');}
+}
+
+async function runSerpAuto(){
+  document.getElementById('btn-next-serp').disabled=true;
+  setStepActive(3);setProgress(45);
+  const country=document.getElementById('country').value;
+  const kwP=document.getElementById('kwPrincipale').value.trim();
+  const kwExtra=document.getElementById('keywords').value.trim().split('\n').map(k=>k.trim()).filter(Boolean);
+  const allKws=[kwP,...kwExtra].filter(Boolean);
+  const serpEl=document.getElementById('serp-results');
+  state.serpData=[];serpEl.innerHTML='';
+
+  for(let i=0;i<allKws.length;i++){
+    const kw=allKws[i];
+    document.getElementById('serp-status').innerHTML=`<div class="status-row"><div class="spinner"></div><span>Analisi SERP per <strong>${kw}</strong> (${i+1}/${allKws.length})...</span></div>`;
+    setProgress(45+Math.round((i/allKws.length)*25));
+    try{
+      const results=await callClaudeSearch(`Cerca su Google: "${kw}" paese ${country}. Dammi i primi 3 risultati organici posizionati.`);
+      state.serpData.push({keyword:kw,results});
+      serpEl.innerHTML+=renderSerpCard(kw,results);
+    }catch(e){
+      state.serpData.push({keyword:kw,results:[{pos:1,title:'Errore nel recupero',url:''}]});
+      serpEl.innerHTML+=renderSerpCard(kw,[{pos:1,title:'Errore',url:''}]);
+    }
+    await new Promise(res=>setTimeout(res,700));
+  }
+  document.getElementById('serp-status').innerHTML=`<div class="msg success">SERP analizzata per ${allKws.length} keyword</div>`;
+  document.getElementById('serp-actions').style.display='flex';
+  setProgress(72);
+}
+
+function renderSerpCard(kw,results){
+  let rows=results.map(r=>`<div class="serp-row"><span class="serp-pos">${r.pos}</span><span class="serp-title">${r.title||''}</span><span class="serp-url" title="${r.url||''}">${r.url||''}</span></div>`).join('');
+  return `<div class="serp-card"><div class="serp-kw-label">${kw}</div>${rows}</div>`;
+}
+
+async function runCopyGen(){
+  const country=document.getElementById('country').value;
+  const locale=localeMap[country];
+  const kwP=document.getElementById('kwPrincipale').value.trim();
+  const kwExtra=document.getElementById('keywords').value.trim().split('\n').map(k=>k.trim()).filter(Boolean);
+  const allKws=[kwP,...kwExtra].filter(Boolean);
+  const brief=document.getElementById('brief').value.trim();
+  const descr=document.getElementById('descrCliente').value.trim();
+  document.getElementById('btn-gen-copy').disabled=true;
+  showStatus('status3','Generazione articolo SEO in corso (30–60 secondi)...','loading');
+  setProgress(78);
+  const sys=`🎯 SEO Copywriter esperto. Produci contenuti di ALMENO 1500 parole.
+⚠️ Restituisci SOLO un oggetto JSON valido. Zero testo fuori. Zero backtick.
+Usa framework PAS. Principio Skyscraper 2.0. Seconda persona "tu". Niente intro generiche.
+OUTPUT JSON esatto:
+{"metaTitle":"...","metaDescription":"...(max 155 char)","slugSuggested":"slug-breve","articleContent":"# H1\\n\\n...","schemaJsonLd":"{...}","persuasionStrategy":"..."}`;
+  const usr=`Paese: ${country} | Lingua: ${locale}
+Keywords: ${allKws.join(', ')}
+Brief: ${brief}
+Cliente: ${descr}
+Buyer persona: ${JSON.stringify(state.bp)}
+SERP competitor (top 3 per keyword): ${JSON.stringify(state.serpData)}
+
+Scrivi l'articolo completo in ${locale}. Almeno 1500 parole. Usa **grassetto** per concetti chiave. Supera i competitor per profondità e utilità.`;
+  try{
+    const raw=await callClaude(sys,usr,8000);
+    state.parsed=JSON.parse(raw.replace(/```json\n?|```/g,'').trim());
+    renderOutput(state.parsed);
+    showStatus('status3','','');
+    setStepActive(4);setProgress(90);
+  }catch(e){showStatus('status3','Errore: '+e.message,'error');document.getElementById('btn-gen-copy').disabled=false;}
+}
+
+function renderOutput(p){
+  document.getElementById('step4-placeholder').style.display='none';
+  document.getElementById('meta-section').style.display='block';
+  document.getElementById('meta-cards').innerHTML=`
+    <div class="meta-item"><div class="meta-label">Meta title</div><div class="meta-val">${p.metaTitle||''}</div></div>
+    <div class="meta-item"><div class="meta-label">Meta description</div><div class="meta-val">${p.metaDescription||''}</div></div>
+    <div class="meta-item"><div class="meta-label">Slug suggerito</div><div class="meta-val" style="font-family:monospace;font-size:12px">${p.slugSuggested||''}</div></div>
+    <div class="meta-item"><div class="meta-label">Strategia persuasiva</div><div class="meta-val">${p.persuasionStrategy||''}</div></div>`;
+  document.getElementById('article-output').textContent=p.articleContent||'';
+}
+
+function copyAll(){
+  if(!state.parsed)return;
+  const txt=`TITOLO SEO: ${state.parsed.metaTitle}\nMETA DESCRIPTION: ${state.parsed.metaDescription}\nSLUG: ${state.parsed.slugSuggested}\n\n${state.parsed.articleContent}`;
+  navigator.clipboard.writeText(txt).then(()=>showStatus('status4','Testo copiato!','success')).catch(()=>showStatus('status4','Errore copia.','error'));
+}
+
+function markdownToDocRequests(markdown){
+  const lines=markdown.split('\n');
+  const requests=[];
+  let idx=1;
+  for(let i=0;i<lines.length;i++){
+    const raw=lines[i];
+    let text='',hLevel=0,isBullet=false;
+    if(raw.startsWith('### ')){text=raw.slice(4).trim();hLevel=3;}
+    else if(raw.startsWith('## ')){text=raw.slice(3).trim();hLevel=2;}
+    else if(raw.startsWith('# ')){text=raw.slice(2).trim();hLevel=1;}
+    else if(raw.startsWith('* ')||raw.startsWith('- ')){text=raw.slice(2).trim();isBullet=true;}
+    else if(raw.startsWith('> ')){text=raw.slice(2).trim();}
+    else{text=raw;}
+    if(text.trim()===''){
+      requests.push({insertText:{location:{index:idx},text:'\n'}});
+      idx+=1;continue;
+    }
+    const clean=text.replace(/\*\*/g,'');
+    const lineText=clean+'\n';
+    const len=lineText.length;
+    requests.push({insertText:{location:{index:idx},text:lineText}});
+    if(hLevel===1)requests.push({updateParagraphStyle:{range:{startIndex:idx,endIndex:idx+len},paragraphStyle:{namedStyleType:'HEADING_1'},fields:'namedStyleType'}});
+    else if(hLevel===2)requests.push({updateParagraphStyle:{range:{startIndex:idx,endIndex:idx+len},paragraphStyle:{namedStyleType:'HEADING_2'},fields:'namedStyleType'}});
+    else if(hLevel===3)requests.push({updateParagraphStyle:{range:{startIndex:idx,endIndex:idx+len},paragraphStyle:{namedStyleType:'HEADING_3'},fields:'namedStyleType'}});
+    if(isBullet)requests.push({createParagraphBullets:{range:{startIndex:idx,endIndex:idx+len},bulletPreset:'BULLET_DISC_CIRCLE_CIRCLE'}});
+    if(hLevel===0){
+      const boldRe=/\*\*(.+?)\*\*/g;let m;
+      while((m=boldRe.exec(text))!==null){
+        const before=text.slice(0,m.index).replace(/\*\*/g,'');
+        const bs=idx+before.length,be=bs+m[1].length;
+        requests.push({updateTextStyle:{range:{startIndex:bs,endIndex:be},textStyle:{bold:true},fields:'bold'}});
+      }
+    }
+    idx+=len;
+  }
+  return requests;
+}
+
+async function exportGDocs(){
+  if(!state.parsed)return;
+  document.getElementById('btn-gdocs').disabled=true;
+  document.getElementById('gdoc-link').style.display='none';
+  showStatus('status4','Creazione documento su Google Drive...','loading');
+  const kwP=document.getElementById('kwPrincipale').value.trim();
+  const docTitle=`SEO Copy — ${kwP} — ${new Date().toLocaleDateString('it-IT')}`;
+  try{
+    const createResp=await callClaudeMCP(`Crea un nuovo file Google Doc vuoto con titolo esatto: "${docTitle}". Rispondimi SOLO con l'ID del documento creato, nient'altro.`);
+    const allText=createResp.filter(b=>b.type==='text').map(b=>b.text).join(' ');
+    const idMatch=allText.match(/([a-zA-Z0-9_-]{25,})/);
+    if(!idMatch)throw new Error('ID documento non trovato: '+allText.substring(0,200));
+    state.docId=idMatch[1];
+    showStatus('status4','Documento creato. Inserimento contenuto formattato...','loading');
+    const metaBlock=`TITOLO SEO: ${state.parsed.metaTitle}\nMETA DESCRIPTION: ${state.parsed.metaDescription}\nSLUG: ${state.parsed.slugSuggested}\n\n`;
+    const fullMd=metaBlock+(state.parsed.articleContent||'');
+    const requests=markdownToDocRequests(fullMd);
+    const CHUNK=400;
+    for(let i=0;i<requests.length;i+=CHUNK){
+      const chunk=requests.slice(i,i+CHUNK);
+      const bResp=await fetch('https://docs.googleapis.com/v1/documents/'+state.docId+':batchUpdate',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({requests:chunk})
+      });
+      if(!bResp.ok){
+        const err=await bResp.text();
+        if(err.includes('401')||err.includes('403')){showStatus('status4','Autenticazione Google Docs scaduta. Usa "Copia testo" come alternativa.','error');document.getElementById('btn-gdocs').disabled=false;return;}
+        throw new Error('batchUpdate '+bResp.status);
+      }
+    }
+    const docUrl=`https://docs.google.com/document/d/${state.docId}/edit`;
+    setProgress(100);
+    showStatus('status4','Documento creato e formattato con successo!','success');
+    const linkEl=document.getElementById('gdoc-link');
+    linkEl.style.display='block';
+    linkEl.innerHTML=`<a href="${docUrl}" target="_blank">${docUrl}</a>`;
+  }catch(e){
+    showStatus('status4','Errore export: '+e.message,'error');
+    document.getElementById('btn-gdocs').disabled=false;
+  }
+}
+</script>
+</body>
+</html>
